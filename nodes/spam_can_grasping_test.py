@@ -120,7 +120,6 @@ def add_kinbody(KinbodyName):
     # kinbodyTrans = np.dot(kinbodyTrans, rotz90)
     kinbody.SetTransform(kinbodyTrans)
     env.AddKinBody(kinbody)
-    print KinbodyName
 
 def create_env():
     tables = env.ReadKinBodyURI('objects/table.kinbody.xml')
@@ -133,7 +132,7 @@ def create_env():
     tableConfig=tables.GetConfigurationValues()
     tableHeight= tableConfig[3]
     robotTrans = robot.GetTransform()
-    robotTrans[2][3] = tableHeight + 0.05
+    robotTrans[2][3] = tableHeight + 0.02
     robotTrans[1][3] -= 0.3/2
     print tableHeight
     robot.SetTransform(robotTrans)
@@ -146,7 +145,7 @@ def bringToUser(kinbodyStr):
             finger_link_inds.append(ind)
         if 'end_effector' in link.GetName():
             grab_link = link
-    kinbody = env.GetKinBody(kinbodyStr)
+    kinbody = env.GetKinBody(kinbodyStr[:-1])
     robot.arm.hand.CloseHand(1.2)
     robot.Grab(kinbody, grablink = grab_link, linkstoignore = finger_link_inds)
     config = np.array(
@@ -161,28 +160,32 @@ def bringToUser(kinbodyStr):
     raw_input('Press enter to continue: ')
     robot.arm.hand.CloseHand(0)
     env.RemoveKinBody(kinbody)
+    robot.arm.PlanToNamedConfiguration('home', execute = True)
 def graspTSR(desiredKinbody):
     robot.arm.PlanToNamedConfiguration('home')
     robot.arm.hand.CloseHand(0)
-    kinbody = env.GetKinBody(desiredKinbody)
+    kinbody = env.GetKinBody(desiredKinbody[:-1])
     kinbodyTrans = kinbody.GetTransform()
     T0_w = kinbodyTrans
     Bw = np.zeros((6,2))
-    if('fuze_bottle' in desiredKinbody or 'glass' in desiredKinbody):
+    if('fuze_bottle' in desiredKinbody):
+        print "I got fuze bottle"
         Tw_e =  np.array([[ 0., 0., 1., -0.005],  
                                [1., 0., 0., 0],
-                               [0., 1., 0., 0.01], 
+                               [0., 1., 0., 0.05], 
                                [0., 0., 0., 1.]])
         Bw[2,:] = [0.0, 0.10] 
         Bw[5,:] = [-np.pi, np.pi]
     elif ('potted_meat_can' in desiredKinbody):
+        print "I got potted meat can"
         Tw_e =  np.array([[ 0., 0., 1., 0.0],  
                               [1., 0., 0., 0],
-                              [0., 1., 0., 0.02],
+                              [0., 1., 0., 0.03],
                               [0., 0., 0., 1.]])
         rot90 = ([1.,0.,0.,0.],[0.,0.,-1.,0.],[0.,1.,0.,0.],[0.,0.,0.,1.])
         Tw_e = np.dot(Tw_e, rot90)
     else:
+        print "I got soup can "
         Tw_e =  np.array([[ 0., 0., 1., -0.005],  # desired offset between end-effector and object along x-axis
                                [1., 0., 0., 0],
                                [0., 1., 0., 0.01], # glass height
@@ -208,13 +211,14 @@ if __name__ == '__main__':
         attach_viewer = 'rviz'
     )
     create_env()
-    objectList = ['potted_meat_can2', 'tomato_soup_can3', 'fuze_bottle4']
+    objectList = ['potted_meat_can4', 'tomato_soup_can3', 'fuze_bottle2']
     for obj in objectList:
         add_kinbody(obj)  
-    id = int(raw_input("Enter ID {0, 1, 2}"))
-    graspTSR(objectList[id][:-1])
-    bringToUser(objectList[id])
-    raw_input("Press Enter")
-    add_kinbody(objectList[id])
+    while True:
+        id = int(raw_input("Enter ID {0, 1, 2}"))
+        graspTSR(objectList[id])
+        bringToUser(objectList[id])
+        raw_input("Press Enter")
+        add_kinbody(objectList[id])
     rospy.spin()
 

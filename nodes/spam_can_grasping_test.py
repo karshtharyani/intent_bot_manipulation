@@ -167,18 +167,29 @@ def graspTSR(desiredKinbody):
     kinbody = env.GetKinBody(desiredKinbody)
     kinbodyTrans = kinbody.GetTransform()
     T0_w = kinbodyTrans
-    Tw_e =  np.array([[ 0., 0., 1., 0.0],  
+    Bw = np.zeros((6,2))
+    if('fuze_bottle' in desiredKinbody or 'glass' in desiredKinbody):
+        Tw_e =  np.array([[ 0., 0., 1., -0.005],  
+                               [1., 0., 0., 0],
+                               [0., 1., 0., 0.01], 
+                               [0., 0., 0., 1.]])
+        Bw[2,:] = [0.0, 0.10] 
+        Bw[5,:] = [-np.pi, np.pi]
+    elif ('potted_meat_can' in desiredKinbody):
+        Tw_e =  np.array([[ 0., 0., 1., 0.0],  
                               [1., 0., 0., 0],
                               [0., 1., 0., 0.02],
                               [0., 0., 0., 1.]])
-    rot90 = ([1.,0.,0.,0.],[0.,0.,-1.,0.],[0.,1.,0.,0.],[0.,0.,0.,1.])
-    Tw_e = np.dot(Tw_e, rot90)
-    Bw = np.zeros((6,2))
-    if('fuze_bottle' in desiredKinbody or 'glass' in desiredKinbody):
-        Bw[2,:] = [0.0, 0.10]  # Allow a little vertical movement
+        rot90 = ([1.,0.,0.,0.],[0.,0.,-1.,0.],[0.,1.,0.,0.],[0.,0.,0.,1.])
+        Tw_e = np.dot(Tw_e, rot90)
     else:
+        Tw_e =  np.array([[ 0., 0., 1., -0.005],  # desired offset between end-effector and object along x-axis
+                               [1., 0., 0., 0],
+                               [0., 1., 0., 0.01], # glass height
+                               [0., 0., 0., 1.]])
         Bw[2,:] = [0.0, 0.04]
-    # Bw[5,:] = [0, ]  
+        Bw[5,:] = [-np.pi, np.pi]
+    
     manip_idx = robot.GetActiveManipulatorIndex()
     grasp_tsr = prpy.tsr.TSR(T0_w = T0_w, 
                             Tw_e = Tw_e, 

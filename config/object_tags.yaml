@@ -1,0 +1,33 @@
+april_tags_config:
+  april_tags_id_list: [2,3,4]
+  april_tags_name_list: ['bottle','soup','soup']
+  april_tags_dictionary: {'2':'bottle','3':'soup','4':'soup'}
+pupil_capture_config:
+  req_port: 50020
+  address: '127.0.0.1'
+  topics: ["frame.world","gaze"]
+world_cam_config:
+  m_width: 1280
+  m_height: 720
+  m_tagSize: 0.038
+  m_fx: 552
+  m_fy: 552
+  m_px: 320
+  m_py: 180
+  m_k1: -0.147
+  m_k2: -0.275
+  m_k3: 1.185
+  m_k4: -1.567
+speech_recognizer_config:
+  noise: 'whitenoise.wav'   #can be 'whitenoise.wav', 'pinknoise.wav', 'crowd.wav'
+  noise_level: 0.0          #between 0 and 1
+  is_online: 1              #1 for Google API backend 0 for pocketsphinx backend
+manip_config:
+  objectList: ['glass', 'tomato_soup_can', 'fuze_bottle']
+  glass_pos : [0.2,0.2]
+  glass_2_pos: [0.3, -0.2]
+  tomato_soup_can_pos: [0.18,-0.13]
+  fuze_bottle_pos: [0.1,0.4]
+Manipulator_AprilTag_config:
+  tag_cal: [6, 9, 8] # origin, x, y
+  pos_offset: [0.11, -0.02 ]

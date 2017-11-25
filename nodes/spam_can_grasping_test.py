@@ -16,8 +16,8 @@ import yaml
 import os
 import object_tracker.tracker as tk
 
-def AddConstraintBoxes(env, robot, handedness='right', 
-                        name_base="constraint_boxes_", 
+def AddConstraintBoxes(env, robot, handedness='right',
+                        name_base="constraint_boxes_",
                         visible=False):
     # Modifies environment to keep the robot inside a defined space
     # Does so by adding invisible boxes around the robot, which planners
@@ -88,8 +88,8 @@ def readFromCamera():
     y_tag = refTagList[2]
     positions = {}
     try:
-        positions = tk.get_object_positions(origin_tag, 
-                                            x_tag, y_tag, obj_tags, 
+        positions = tk.get_object_positions(origin_tag,
+                                            x_tag, y_tag, obj_tags,
                                             timeout = 5)
         pos_offset = np.array(manip_april_config['pos_offset'])
         positions = {k: positions[k] + pos_offset for k in positions.keys()}
@@ -105,10 +105,10 @@ def add_kinbody(KinbodyName):
     table = env.GetKinBody('table')
     tableConfig = table.GetConfigurationValues()
     tableHeight = tableConfig[3]
-    
+
     kinbody = env.ReadKinBodyURI('objects/'+ KinbodyName[:-1] + '.kinbody.xml')
     kinbodyTrans = kinbody.GetTransform()
-    
+
     tag = int(KinbodyName[-1])
     positions = readFromCamera()
     obj_pos = positions[tag]
@@ -133,7 +133,6 @@ def create_env():
     tableHeight= tableConfig[3]
     robotTrans = robot.GetTransform()
     robotTrans[2][3] = tableHeight + 0.02
-    robotTrans[1][3] -= 0.3/2
     print tableHeight
     robot.SetTransform(robotTrans)
     AddConstraintBoxes(env,robot)
@@ -150,9 +149,9 @@ def bringToUser(kinbodyStr):
     robot.Grab(kinbody, grablink = grab_link, linkstoignore = finger_link_inds)
     config = np.array(
         [-1.27723448,
-        -1.09628494, 
-        -0.37344909, 
-        -1.28876703,  
+        -1.09628494,
+        -0.37344909,
+        -1.28876703,
         2.14318495,
         3.44385185])
     plan = robot.arm.PlanToConfiguration(config, timeout = 10)
@@ -162,7 +161,7 @@ def bringToUser(kinbodyStr):
     env.RemoveKinBody(kinbody)
     robot.arm.PlanToNamedConfiguration('home', execute = True)
 def graspTSR(desiredKinbody):
-    robot.arm.PlanToNamedConfiguration('home')
+    robot.arm.PlanToNamedConfiguration('home', execute = True)
     robot.arm.hand.CloseHand(0)
     kinbody = env.GetKinBody(desiredKinbody[:-1])
     kinbodyTrans = kinbody.GetTransform()
@@ -170,55 +169,67 @@ def graspTSR(desiredKinbody):
     Bw = np.zeros((6,2))
     if('fuze_bottle' in desiredKinbody):
         print "I got fuze bottle"
-        Tw_e =  np.array([[ 0., 0., 1., -0.005],  
+        Tw_e =  np.array([[ 0., 0., 1., -0.005],
                                [1., 0., 0., 0],
-                               [0., 1., 0., 0.05], 
+                               [0., 1., 0., 0.03],
                                [0., 0., 0., 1.]])
-        Bw[2,:] = [0.0, 0.10] 
+        Bw[2,:] = [0.0, 0.08]
         Bw[5,:] = [-np.pi, np.pi]
     elif ('potted_meat_can' in desiredKinbody):
         print "I got potted meat can"
-        Tw_e =  np.array([[ 0., 0., 1., 0.0],  
+        Tw_e =  np.array([[ 0., 0., 1., 0.03],
                               [1., 0., 0., 0],
                               [0., 1., 0., 0.03],
                               [0., 0., 0., 1.]])
-        rot90 = ([1.,0.,0.,0.],[0.,0.,-1.,0.],[0.,1.,0.,0.],[0.,0.,0.,1.])
-        Tw_e = np.dot(Tw_e, rot90)
+        # rot90 = ([1.,0.,0.,0.],[0.,0.,-1.,0.],[0.,1.,0.,0.],[0.,0.,0.,1.])
+        # Tw_e = np.dot(Tw_e, rot90)
+        # Bw[3, :] = [np.pi/4, 3*np.pi/4]
     else:
         print "I got soup can "
         Tw_e =  np.array([[ 0., 0., 1., -0.005],  # desired offset between end-effector and object along x-axis
                                [1., 0., 0., 0],
-                               [0., 1., 0., 0.01], # glass height
+                               [0., 1., 0., 0.03], # glass height
                                [0., 0., 0., 1.]])
-        Bw[2,:] = [0.0, 0.04]
+        # Bw[2,:] = [0.0, 0.04]
         Bw[5,:] = [-np.pi, np.pi]
-    
+
     manip_idx = robot.GetActiveManipulatorIndex()
-    grasp_tsr = prpy.tsr.TSR(T0_w = T0_w, 
-                            Tw_e = Tw_e, 
-                            Bw = Bw, 
+    grasp_tsr = prpy.tsr.TSR(T0_w = T0_w,
+                            Tw_e = Tw_e,
+                            Bw = Bw,
                             manipindex = manip_idx)
     tsr_chain = prpy.tsr.TSRChain(sample_goal=True,
-                                 sample_start=False, 
-                                 constrain=False, 
+                                 sample_start=False,
+                                 constrain=False,
                                  TSR=grasp_tsr)
-    IPython.embed()
+    # IPython.embed()
+    plan = None
+    while plan is None:
+        plan = robot.arm.PlanToTSR([tsr_chain])
+    robot.ExecutePath(plan)
 
 if __name__ == '__main__':
     rospy.init_node('manipulateObject') #this is the action
     env, robot = adapy.initialize(
-        sim = True,
+        sim = False,
         attach_viewer = 'rviz'
     )
+    # IPython.embed()
+    home = np.array([-2.90517832, -1.90094241,  0.79252591, -1.12974932,  1.70508812,
+        3.09526748])
+    robot.arm.PlanToConfiguration(home, execute = True)
     create_env()
     objectList = ['potted_meat_can4', 'tomato_soup_can3', 'fuze_bottle2']
     for obj in objectList:
-        add_kinbody(obj)  
+        add_kinbody(obj)
+
+    robot.arm.PlanToNamedConfiguration('home', execute = True)
+
     while True:
         id = int(raw_input("Enter ID {0, 1, 2}"))
         graspTSR(objectList[id])
         bringToUser(objectList[id])
-        raw_input("Press Enter")
+        robot.arm.PlanToConfiguration(home, execute = True)
+        ch = raw_input("Press Enter")
         add_kinbody(objectList[id])
     rospy.spin()
-

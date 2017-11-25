@@ -136,6 +136,23 @@ def create_env():
     print tableHeight
     robot.SetTransform(robotTrans)
     AddConstraintBoxes(env,robot)
+
+def reset_env(objectList):
+    for KinbodyName in objectList:
+        kinbody = env.GetKinBody(KinbodyName[:-1])
+        kinbodyTrans = kinbody.GetTransform()
+
+        tag = int(KinbodyName[-1])
+        positions = readFromCamera()
+        obj_pos = positions[tag]
+        _x = obj_pos[0]
+        _y = obj_pos[1]
+        kinbodyTrans[0][3] = (_x)
+        kinbodyTrans[1][3] = (_y)*(-1)
+        # kinbodyTrans[2][3] = tableHeight + 0.042
+        kinbody.SetTransform(kinbodyTrans)
+
+
 def bringToUser(kinbodyStr):
     finger_link_inds = []
     grab_link = None
@@ -213,7 +230,7 @@ def graspTSR(desiredKinbody):
 if __name__ == '__main__':
     rospy.init_node('manipulateObject') #this is the action
     env, robot = adapy.initialize(
-        sim = False,
+        sim = True,
         attach_viewer = 'rviz'
     )
     # IPython.embed()
@@ -234,4 +251,5 @@ if __name__ == '__main__':
         robot.arm.PlanToConfiguration(home, execute = True)
         ch = raw_input("Press Enter")
         add_kinbody(objectList[id])
+        reset_env(objectList)
     rospy.spin()

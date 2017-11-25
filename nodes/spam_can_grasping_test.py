@@ -163,6 +163,7 @@ def bringToUser(kinbodyStr):
 def graspTSR(desiredKinbody):
     robot.arm.PlanToNamedConfiguration('home', execute = True)
     robot.arm.hand.CloseHand(0)
+    rospy.sleep(3)
     kinbody = env.GetKinBody(desiredKinbody[:-1])
     kinbodyTrans = kinbody.GetTransform()
     T0_w = kinbodyTrans
@@ -176,14 +177,16 @@ def graspTSR(desiredKinbody):
         Bw[2,:] = [0.0, 0.08]
         Bw[5,:] = [-np.pi, np.pi]
     elif ('potted_meat_can' in desiredKinbody):
-        print "I got potted meat can"
-        Tw_e =  np.array([[ 0., 0., 1., 0.03],
-                              [1., 0., 0., 0],
+        Tw_e =  np.array([[ 0., 0., 1., 0],
+                              [1., 0., 0., 0.],
                               [0., 1., 0., 0.03],
                               [0., 0., 0., 1.]])
-        # rot90 = ([1.,0.,0.,0.],[0.,0.,-1.,0.],[0.,1.,0.,0.],[0.,0.,0.,1.])
-        # Tw_e = np.dot(Tw_e, rot90)
-        # Bw[3, :] = [np.pi/4, 3*np.pi/4]
+        rot90 = ([1.,0.,0.,0.],[0.,0.,-1.,0.],[0.,1.,0.,0.],[0.,0.,0.,1.])
+        Tw_e = np.dot(Tw_e, rot90)
+        # Bw[2,:] = [0.0, 0.02]
+        # Bw[3,:] = [-np.pi, np.pi]
+        Bw[1,:] = [-0.02, 0.02]
+        Bw[4,:] = [-np.pi, np.pi]
     else:
         print "I got soup can "
         Tw_e =  np.array([[ 0., 0., 1., -0.005],  # desired offset between end-effector and object along x-axis
@@ -192,7 +195,6 @@ def graspTSR(desiredKinbody):
                                [0., 0., 0., 1.]])
         # Bw[2,:] = [0.0, 0.04]
         Bw[5,:] = [-np.pi, np.pi]
-
     manip_idx = robot.GetActiveManipulatorIndex()
     grasp_tsr = prpy.tsr.TSR(T0_w = T0_w,
                             Tw_e = Tw_e,
